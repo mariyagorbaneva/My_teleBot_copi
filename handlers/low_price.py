@@ -2,18 +2,17 @@ import json
 from datetime import date, timedelta
 from typing import Union, Dict
 
-from telebot import types, logger
-from telebot.callback_data import CallbackData
+from telebot import types
+from telebot.types import CallbackQuery
 from telegram_bot_calendar import DetailedTelegramCalendar
 
-from keyboards.city import get_cities, for_city, get_kb_calendar
 from config_data.config import RAPID_API_HEADERS, RAPID_API_ENDPOINTS
+from keyboards.city import get_cities, for_city, get_kb_calendar
 from main import bot
 from states.user_states import state
 from tg_API.util.adress import get_hotel_address
 from tg_API.util.answer import show_info, count_amount_nights
 from tg_API.util.api_reqiest import request_to_api
-from telebot.types import CallbackQuery
 
 
 @bot.message_handler(commands='low')
@@ -107,13 +106,11 @@ def date_reply(call: CallbackQuery) -> None:
                 if data.get('last_command') in ('low', 'high'):
                     data_dict = data
                     hotel_cities(call.message, data_dict)
-                    #bot.set_state(call.from_user.id, UsersStates.last_command, call.message.chat.id)
+                    # bot.set_state(call.from_user.id, UsersStates.last_command, call.message.chat.id)
                     bot.send_message(call.message.chat.id,
                                      f"😉👌 Вот как-то так.\nМожете ввести ещё какую-нибудь команду!\n"
                                      f"Например: <b>/help</b>", parse_mode="html")
-                # else:
-                #     bot.set_state(call.from_user.id, UsersStates.start_price, call.message.chat.id)
-                #     bot.send_message(call.message.chat.id, "Введите минимальную цену за ночь $:")
+
 
 
 def process_hotels_info(hotels_info_list) -> Dict[int, Dict]:
@@ -151,10 +148,11 @@ def hotel_cities(message: types.Message, data: dict) -> Union[Dict[str, str], No
 
     if data.get('last_command') == 'high':
         sort_order = 'PRICE_HIGHEST_FIRST'
-    elif data.get('last_command') == 'low':
+    elif data.get('last_command') == 'bestdeal':
         sort_order = 'DISTANCE'
     else:
         sort_order = 'PRICE_LOW_TO_HIGH'
+
     check_in = (str(data["start_date"])).split("-")
     check_out = (str(data["end_date"])).split("-")
 
@@ -175,8 +173,7 @@ def hotel_cities(message: types.Message, data: dict) -> Union[Dict[str, str], No
             },
             "rooms": [{"adults": 1, "children": []}],
             "sort": sort_order
-    }
-
+        }
 
     response = request_to_api(
         method_type='POST',
@@ -219,4 +216,3 @@ def hotel_cities(message: types.Message, data: dict) -> Union[Dict[str, str], No
               result_data=info_hotels,
               amount_nights=amount_nights)
     print('Don')
-

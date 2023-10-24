@@ -20,7 +20,7 @@ def run_bot() -> None:
     bot.add_custom_filter(StateFilter(bot))
     bot.add_custom_filter(IsDigitFilter())
     bot.add_custom_filter(CityCallbackFilter())
-    # bot.add_custom_filter(HistoryCallbackFilter())
+    bot.add_custom_filter(HistoryCallbackFilter())
     bot.infinity_polling()
 
 
