@@ -1,9 +1,13 @@
 from telebot.types import Message
+from loader import bot
 
-from main import bot
 from states.user_states import state
+from tg_API.util.get_hotels import process_hotels_info
 
-from handlers import survey_hendlers
+from loguru import logger
+from tg_API.util.adress import get_hotel_address
+from tg_API.util.answer import show_info, count_amount_nights
+from tg_API.util.api_reqiest import request_to_api
 
 
 

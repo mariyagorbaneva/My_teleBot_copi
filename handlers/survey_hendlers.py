@@ -1,55 +1,32 @@
-import json
-from datetime import date, timedelta
-from typing import Union, Dict
-
 from telebot import types
 from telebot.types import CallbackQuery
-from telegram_bot_calendar import DetailedTelegramCalendar
-
 from config_data.config import RAPID_API_HEADERS, RAPID_API_ENDPOINTS
 from keyboards.city import get_cities, for_city, get_kb_calendar
 from main import bot
 from states.user_states import state
-from tg_API.util.adress import get_hotel_address
-from tg_API.util.answer import show_info, count_amount_nights
-from tg_API.util.api_reqiest import request_to_api
+
+from loader import bot
+from telebot.types import Message, CallbackQuery
+from loguru import logger
+from tg_API.util import get_cities
+from tg_API.util.get_cities import pars_cities, print_cities
+from telegram_bot_calendar import DetailedTelegramCalendar
+from datetime import date, timedelta
+from tg_API.util import api_reqiest
 
 
-@bot.message_handler(commands='low')
-def send_welcome(message: types.Message):
-    bot.send_message(message.from_user.id, "Введите город для поиска отелей")
-    bot.delete_state(message.from_user.id, message.chat.id)
-    bot.set_state(message.from_user.id, state.city, message.chat.id)
-    with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
-        data['last_command'] = 'low'
-
-
-@bot.message_handler(state=state.city)
-def get_city(message: types.Message):
+@bot.message_handler(state=state.cities)
+def get_city(message: Message):
     kb = get_cities(pars_cities(message.text))
     bot.send_message(message.from_user.id, 'Уточните город: ', reply_markup=kb)
 
-
-def pars_cities(city: str) -> Union[Dict[str, str], None]:
-    querystring = {"q": city, "locale": "ru_RU", "langid": "1033", "siteid": "300000001"}
-
-    response = request_to_api(
-        method_type='GET',
-        url=RAPID_API_ENDPOINTS['cities-groups'],
-        payload=querystring,
-        headers=RAPID_API_HEADERS)
-
-    data_site = json.loads(response.text)
-    cities = dict()
-    if data_site.get('sr'):
-        city_list = data_site.get('sr')
-        for elem in city_list:
-            for k, v in elem.items():
-                if k == 'type' and (v == 'CITY' or v == 'MULTICITY'):
-                    city_id = elem.get('gaiaId')
-                    city_name = elem.get('regionNames').get('fullName')
-                    cities[city_name] = city_id
-    return cities
+    cities_dict = pars_cities(message.text)
+    if cities_dict:
+        with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
+            data['cities'] = cities_dict
+        bot.send_message(message.from_user.id, 'Пожалуйста, уточните:', reply_markup=print_cities(cities_dict))
+    else:
+        bot.send_message(message.from_user.id, '⚠️ Не нахожу такой город. Введите ещё раз.')
 
 
 @bot.callback_query_handler(func=None, city_config=for_city.filter())  # запрашиваем количество отелей
@@ -68,7 +45,6 @@ def get_choose_data(message: types.Message):
 
     kb = get_kb_calendar()
     bot.send_message(message.from_user.id, 'Выберите дату заезда: ', reply_markup=kb)
-
 
 @bot.callback_query_handler(func=DetailedTelegramCalendar.func())
 def date_reply(call: CallbackQuery) -> None:
@@ -103,117 +79,74 @@ def date_reply(call: CallbackQuery) -> None:
                 data['end_date'] = result
 
                 bot.edit_message_reply_markup(call.message.chat.id, call.message.message_id, reply_markup=None)
-                print(data.get('last_command'))
-                if data.get('last_command') in ('low', 'high'):
+
+                if data.get('last_command') in ('lowprice', 'highprice'):
                     data_dict = data
-                    hotel_cities(call.message, data_dict)
-                    # bot.set_state(call.from_user.id, UsersStates.last_command, call.message.chat.id)
+                    #low_high_price_answer(call.message, data_dict, call.from_user.username)
+                    bot.set_state(call.from_user.id, state.last_command, call.message.chat.id)
                     bot.send_message(call.message.chat.id,
                                      f"😉👌 Вот как-то так.\nМожете ввести ещё какую-нибудь команду!\n"
                                      f"Например: <b>/help</b>", parse_mode="html")
+                else:
+                    bot.set_state(call.from_user.id, state.start_price, call.message.chat.id)
+                    bot.send_message(call.message.chat.id, "Введите минимальную цену за ночь $:")
 
+@bot.message_handler(state=state.start_price, is_digit=True)
+def get_start_price(message: Message) -> None:
+    with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
+        data['start_price'] = int(message.text)
+    bot.set_state(message.chat.id, message.from_user.id, state.end_price)
+    bot.send_message(message.chat.id, 'Введите максимальную цену за ночь $: ')
 
+@bot.message_handler(state=state.start_price, is_digit=False) # проверяем число
+def star_price_incorrect(message: Message) -> None:
+    bot.send_message(message.from_user.id, 'Введите число больше нуля! ')  #если не число - выводит сообщение об ошибке
 
-def process_hotels_info(hotels_info_list) -> Dict[int, Dict]:
-    """
-    Функция получает список словарей - результат парсинга отелей, выбирает нужную информацию, обрабатывает и складывает
-    в словарь hotels_info_dict
-
-    :param hotels_info_list: Список со словарями. Каждый словарь - полная информация по отелю (результат парсинга).
-    :param amount_nights: Количество ночей.
-    :return: Словарь с информацией по отелю: {hotel_id: {hotel_info}} (теоретически может быть пустым).
-    """
-
-    hotels_info_dict = dict()
-    for key, value in hotels_info_list.items():
-        hotel_name = key
-        hotel_id = value[0]
-        price_per_night = value[2]
-        distance_city_center = value[1]
-        hotel_neighbourhood = get_hotel_address(value[0])
-        total_price = value[4]
-
-        hotels_info_dict[hotel_id] = {
-            'name': hotel_name,
-            'price_per_night': price_per_night,
-            'total_price': total_price,
-            'distance_city_center': distance_city_center,
-            'hotel_url': f'https://www.hotels.com/h{hotel_id}.Hotel-Information/',
-            'hotel_neighbourhood': hotel_neighbourhood
-        }
-    return hotels_info_dict
-
-
-def hotel_cities(message: types.Message, data: dict) -> Union[Dict[str, str], None]:  # выводим список отелей по запросу
-    global payload
-
-    if data.get('last_command') == 'high':
-        sort_order = 'PRICE_HIGHEST_FIRST'
-    elif data.get('last_command') == 'bestdeal':
-        sort_order = 'DISTANCE'
-    else:
-        sort_order = 'PRICE_LOW_TO_HIGH'
-
-    check_in = (str(data["start_date"])).split("-")
-    check_out = (str(data["end_date"])).split("-")
-
-    if data.get('last_command') in ('high', 'low'):
-        payload = {
-            "locale": "ru_RU",
-            "destination": {"regionId": data['city_id']},
-            "resultsSize": int(data['count_hotel']),
-            "checkInDate": {
-                "day": int(check_in[2]),
-                "month": int(check_in[1]),
-                "year": int(check_in[0])
-            },
-            "checkOutDate": {
-                "day": int(check_out[2]),
-                "month": int(check_out[1]),
-                "year": int(check_out[0])
-            },
-            "rooms": [{"adults": 1, "children": []}],
-            "sort": sort_order
-        }
-
-    response = request_to_api(
-        method_type='POST',
-        url=RAPID_API_ENDPOINTS['hotel-list'],
-        payload=payload,
-        headers=RAPID_API_HEADERS)
-
-    amount_nights = count_amount_nights(data['start_date'], data['end_date'])
-
-    data = json.loads(response.text)
-
-    hotels = dict()
-    if data.get('data').get('propertySearch').get('properties'):
-        for element in data.get('data').get('propertySearch').get('properties'):
-            if len(hotels) < 25:
-                if element.get('__typename') == 'Property':
-                    hotel_id = element.get('id')
-                    hotel_primary_img = element.get('propertyImage').get('image').get('url')
-                    current_price = round(element.get('price').get('lead').get('amount'), 2)
-                    hotel_distance = round(float(
-                        element.get('destinationInfo').get('distanceFromDestination').get('value')) * 1.6, 2)
-                    total_price = ''
-                    for elem in element.get('price').get('displayMessages'):
-                        for k, v in elem.items():
-                            if k == 'lineItems':
-                                for var in v:
-                                    for n, val in var.items():
-                                        if n == "value" and "total" in val:
-                                            total_price = val
-                                            break
-                    hotels[element.get('name')] = [
-                        hotel_id, hotel_distance, current_price, hotel_primary_img, total_price
-                    ]
+@bot.message_handler(state=state.end_price, is_digit=True)
+def get_end_price(message: Message) ->None:
+    if int(message.text) > 0:
+        with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
+            if int(message.text) > data['start_price']:
+                data['end_price'] = int(message.text)
+                bot.set_state(message.from_user.id, state.end_distance, message.chat.id)
+                bot.send_message(message.chat.id, "Введите максимальное расстояние до центра в км\n"
+                                                  "(например 10):")
             else:
-                break
+                bot.send_message(message.chat.id,
+                                 f"⚠️ Максимальная цена должна быть больше {data['start_price']}$")
+    else:
+        bot.send_message(message.from_user.id, '⚠️ Введите число больше нуля')
 
-    info_hotels = process_hotels_info(hotels)  # много отелей
-    show_info(message=message,
-              amount_photo=5,
-              result_data=info_hotels,
-              amount_nights=amount_nights)
+@bot.message_handler(state=state.end_price, is_digit=False)
+def get_end_price_incorrect(message: Message) ->None:
+    bot.send_message(message.from_user.id, 'Введите число больше нуля! ')
+
+
+@bot.message_handler(state=state.end_distance)
+def get_end_distance(message: Message) -> None:
+
+
+    if ',' in message.text:
+        message.text = message.text.replace(',', '.')
+
+    try:
+        message.text = float(message.text)
+        if message.text > 0:
+            with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
+                data['end_distance'] = message.text
+                #data_dict = data
+                bot.set_state(message.from_user.id, state.last_command, message.chat.id)
+                bot.send_message(message.chat.id, f"Вот как-то так.\nМожете ввести ещё какую-нибудь команду!\n"
+                                                  f"Например: <b>/help</b>", parse_mode="html")
+        else:
+            bot.send_message(message.from_user.id, 'Введите число больше нуля')
+    except Exception:
+        bot.set_state(message.from_user.id, state.last_command, message.chat.id)
+        bot.send_message(message.chat.id, "Ошибка. Попробуйте еще раз.\n"
+                                          "Введите команду! Например: <b>/help</b>", parse_mode="html")
+
+
+
+
+
     print('Don')

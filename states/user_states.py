@@ -7,4 +7,7 @@ class state(StatesGroup):
     choose_data = State()
     last_command = State()
     start_price = State()
+    end_price = State()
+    end_distance = State()
     bestdeal = State()
+    cities = State()
