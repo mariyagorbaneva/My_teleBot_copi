@@ -4,6 +4,7 @@ from typing import Union, Dict
 
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
+from keyboards.city import for_city
 from tg_API.util.api_reqiest import request_to_api
 from config_data.config import RAPID_API_ENDPOINTS, RAPID_API_HEADERS
 from tg_API.util.api_reqiest import request_to_api
@@ -17,7 +18,7 @@ def pars_cities(city: str) -> Union[Dict[str, str], None]:
         url=RAPID_API_ENDPOINTS['cities-groups'],
         payload=querystring,
         headers=RAPID_API_HEADERS)
-    print(response)
+    # print(response)
     data_site = json.loads(response.text)
 
     cities = dict()
@@ -30,6 +31,7 @@ def pars_cities(city: str) -> Union[Dict[str, str], None]:
                     city_name = elem.get('regionNames').get('fullName')
                     cities[city_name] = city_id
     return cities
+
 
 def print_cities(cities_dict: Dict[str, str]) -> InlineKeyboardMarkup:
     """

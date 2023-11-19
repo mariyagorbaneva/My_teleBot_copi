@@ -13,7 +13,7 @@ from tg_API.util import get_hotels, get_cities
 def send_welcome(message: types.Message):
     bot.send_message(message.from_user.id, "Введите город для поиска отелей")
     bot.delete_state(message.from_user.id, message.chat.id)
-    bot.set_state(message.from_user.id, state.city, message.chat.id)
+    bot.set_state(message.from_user.id, state.cities, message.chat.id)
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         data['last_command'] = 'low'
 

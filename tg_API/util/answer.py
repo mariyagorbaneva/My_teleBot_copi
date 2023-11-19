@@ -25,7 +25,7 @@ def parse_photos(hotel_id: int) -> Union[List[Dict], None]:
         headers=RAPID_API_HEADERS)
     if responce and responce.text != '':  # responce.text == '' - это когда у отеля нет фоток, хотя responce == 200
         result = json.loads(responce.text)
-        print(result)
+        #print(result)
         return result
     return None
 
@@ -105,6 +105,7 @@ def get_photos(message: Message, hotel_id: int, amount_photo: int) -> Union[List
         if photos_list:
             return photos_list
     bot.send_message(message.chat.id, '⚠️ Ошибка загрузки фото.')
+    print(amount_photo)
     return None
 
 
@@ -137,3 +138,40 @@ def show_info(
         else:
             hotel_info_str = get_hotel_info_str(hotel_data, amount_nights)
             bot.send_message(message.chat.id, hotel_info_str, parse_mode="html", disable_web_page_preview=True)
+
+# def show_info(
+#         message: Message, request_data: Dict, result_data: Dict[int, Dict], user: str, amount_nights: int
+# ) -> None:
+#     """
+#     Функция вывода информации по найденным отелям.
+#     Если пользователь задал вывод фото - Отправляет медиа группу (bot.send_media_group)
+#     Иначе составляет список со строковой информацией по отелям. Затем присваивает этот список пейджеру 'my_pages'
+#     и вызывает пагинатор 'show_paginator', который и отобразит результат.
+#
+#     :param message: Сообщение Telegram
+#     :param request_data: словарь с данными запроса (город, даты поездки, нужны ли фото)
+#     :param result_data: словарь с найденными отелями.
+#     :param user: Имя пользователя Telegram (username) - перехватывается и используется только в декораторе
+#     для сохранения истории.
+#     :param amount_nights: Количество ночей.
+#     """
+#
+#     hotels_info_list = list()
+#
+#     for hotel_id, hotel_data in result_data.items():
+#         if request_data['need_photo']:
+#             photo_urls = get_photos(message, hotel_id, request_data['amount_photo'])
+#             if photo_urls:
+#                 hotel_info_str = get_hotel_info_str_nohtml(hotel_data, amount_nights)
+#                 photos = [
+#                     InputMediaPhoto(media=url, caption=hotel_info_str) if index == 0 else InputMediaPhoto(media=url)
+#                     for index, url in enumerate(photo_urls)
+#                 ]
+#                 bot.send_media_group(message.chat.id, photos)
+#             else:
+#                 hotel_info_str = get_hotel_info_str(hotel_data, amount_nights)
+#                 bot.send_message(message.chat.id, hotel_info_str, parse_mode="html", disable_web_page_preview=True)
+#         else:
+#             hotel_info_str = get_hotel_info_str_nohtml(hotel_data, amount_nights)
+#             hotels_info_list.append(hotel_info_str)
+

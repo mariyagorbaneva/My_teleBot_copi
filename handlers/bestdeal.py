@@ -22,7 +22,7 @@ def bot_best_deal(message: Message):
     """
 
     bot.delete_state(message.from_user.id, message.chat.id)
-    bot.set_state(message.from_user.id, state.city, message.chat.id)
+    bot.set_state(message.from_user.id, state.cities, message.chat.id)
     bot.send_message(message.from_user.id, 'Введите город')
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
         data['last_command'] = 'bestdeal'
