@@ -154,4 +154,3 @@ def low_high_price_answer(message: Message, data: Dict, user: str) -> None:
     bot.send_message(message.chat.id, reply_str, parse_mode="html")
 
     hotel_cities(message, data)
-
