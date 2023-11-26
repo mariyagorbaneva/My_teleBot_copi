@@ -123,7 +123,6 @@ def date_reply(call: CallbackQuery) -> None:
 
                 if data.get('last_command') in ('low', 'high'):
                     data_dict = data
-                    #hotel_cities(call.message, data_dict)
                     low_high_price_answer(call.message, data_dict, call.from_user.username)
                     bot.set_state(call.from_user.id, state.last_command, call.message.chat.id)
                     bot.send_message(call.message.chat.id,
@@ -132,9 +131,7 @@ def date_reply(call: CallbackQuery) -> None:
                 else:
                     bot.set_state(call.from_user.id, state.start_price, call.message.chat.id)
                     bot.send_message(call.message.chat.id, "Введите минимальную цену за ночь $:")
-#@bot.message_handler(state=state.start_price, is_digit=False) # проверяем число
-# def star_price_incorrect(message: Message) -> None:
-#     bot.send_message(message.from_user.id, 'Введите число больше нуля! ')  #если не число - выводит сообщение об ошибке
+
 @bot.message_handler(state=state.start_price, is_digit=True)
 def get_start_price(message: Message) -> None:
     with bot.retrieve_data(message.from_user.id, message.chat.id) as data:
