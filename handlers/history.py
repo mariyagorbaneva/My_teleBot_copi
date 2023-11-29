@@ -17,7 +17,6 @@ def bot_history(message: Message):
     bot.delete_state(message.from_user.id, message.chat.id)
     bot.send_message(message.from_user.id, 'Выберите действие:', reply_markup=get_history_action())
 
-
 @bot.callback_query_handler(func=lambda call: call.data == 'show_history' or call.data == 'delete_history')
 def process_history_reply(call: CallbackQuery) -> None:
     """
