@@ -3,6 +3,8 @@ from datetime import datetime
 from typing import Callable, re
 
 from telebot.types import Message, CallbackQuery
+
+from database.history_result_choice import print_histories
 from database.models import User, History, SearchResult
 from loader import db, bot
 from tg_API.util.answer import get_hotel_info_str_nohtml

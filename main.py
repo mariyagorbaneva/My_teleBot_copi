@@ -1,6 +1,6 @@
 from database.models import User, History, SearchResult
 from loader import bot, db
-from loguru import logger
+import handlers
 from keyboards.filters import CityCallbackFilter, HistoryCallbackFilter
 from telebot.custom_filters import StateFilter, IsDigitFilter
 from tg_API.util.set_default_commands import set_default_commands
