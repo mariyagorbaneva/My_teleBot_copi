@@ -1,17 +1,17 @@
 import functools
 from datetime import datetime
-from typing import Callable, re
+from typing import Callable
+import re
 
 from telebot.types import Message, CallbackQuery
 
 from database.history_result_choice import print_histories
 from database.models import User, History, SearchResult
 from loader import db, bot
-from tg_API.util.answer import get_hotel_info_str_nohtml
 from tg_API.util.factories import for_history
 
 
-def save_user(message: Message) -> None:
+def save_user(message: Message) -> User:
     """
     Функция сохранения имени пользователя.
     Проверяет наличие пользователя в БД и, если его нет, заносит в БД в таблицу 'users'.
@@ -20,13 +20,13 @@ def save_user(message: Message) -> None:
     """
 
     with db:
-        username = message.from_user.username
+        user_id = message.from_user.id
         try:
-            user_id = User.get(User.name == username)
+            u = User.get(User.id == user_id)
         except Exception:
-            user_id = None
-        if not user_id:
-            User(name=username).save()
+            u = User(id=user_id, name=message.from_user.username)
+            u.save()
+        return u
 
 
 
@@ -74,17 +74,17 @@ def save_history(func: Callable) -> Callable:
 
 
 
-def show_history(message: Message, user: str) -> None:
+def show_history(message: Message, user_id: int) -> None:
     """
     Функция вывода истории поиска пользователя.
     Предлагает пользователю инлайн-клавиатуру с его прошлыми запросами из таблицы 'histories'.
 
     :param message: Сообщение.
-    :param user: Имя пользователя Telegram (username).
+    :param user_id: Имя пользователя Telegram (username).
     """
 
     with db:
-        histories = [history for history in History.select().where(History.from_user == user)]
+        histories = [history for history in History.select().where(History.from_user == message.from_user.id)]
         if histories:
             bot.send_message(message.chat.id, text='Вот ваши прошлые запросы, выбирайте:',
                              reply_markup=print_histories(histories))
@@ -120,6 +120,7 @@ def clarify_history(call: CallbackQuery) -> None:
                 'hotel_url': result.hotel_url,
                 'hotel_neighbourhood': result.hotel_neighbourhood
             }
+            from tg_API.util.answer import get_hotel_info_str_nohtml
             hotel_info = get_hotel_info_str_nohtml(hotel_data=hotel_data, amount_nights=result.amount_nights)
             hotels_info_list.append(hotel_info)
         # my_pages.my_strings = hotels_info_list[:]

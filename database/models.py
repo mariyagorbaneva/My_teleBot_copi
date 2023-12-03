@@ -36,7 +36,7 @@ class History(BaseModel):
         city (str): Город.
         start_date (datetime.date): Дата заселения в отель.
         end_date (datetime.date): Дата выселения из отеля.
-        from_user (str): name - Уникальное имя пользователя из таблицы 'users' для связки таблиц.
+        from_user (int): id - Уникальное id пользователя из таблицы 'users' для связки таблиц.
     """
 
     date = DateField()
@@ -44,7 +44,7 @@ class History(BaseModel):
     city = CharField()
     start_date = DateField()
     end_date = DateField()
-    from_user = ForeignKeyField(User.name)
+    from_user = IntegerField()
 
     class Meta:
         db_table = 'histories'

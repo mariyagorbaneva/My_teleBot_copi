@@ -1,8 +1,7 @@
 from datetime import datetime
 from typing import List
 
-from telebot.types import InlineKeyboardMarkup
-from telegram_bot_pagination import InlineKeyboardButton
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from database.models import History
 from keyboards.city import for_history

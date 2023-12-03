@@ -4,6 +4,8 @@ from typing import Dict, Union, List
 from telebot.types import Message, InputMediaPhoto
 
 from config_data.config import RAPID_API_ENDPOINTS, RAPID_API_HEADERS
+from database.db_controller import save_history
+from database.models import User
 from loader import bot
 from tg_API.util.api_reqiest import request_to_api
 
@@ -25,7 +27,7 @@ def parse_photos(hotel_id: int) -> Union[List[Dict], None]:
         headers=RAPID_API_HEADERS)
     if responce and responce.text != '':  # responce.text == '' - это когда у отеля нет фоток, хотя responce == 200
         result = json.loads(responce.text)
-        #print(result)
+        # print(result)
         return result
     return None
 
@@ -109,8 +111,10 @@ def get_photos(message: Message, hotel_id: int, amount_photo: int) -> Union[List
     return None
 
 
+@save_history
 def show_info(
-        message: Message, amount_photo: int, result_data: Dict[int, Dict], amount_nights: int
+        message: Message, amount_photo: int, result_data: Dict[int, Dict], amount_nights: int, *,
+        user: int, request_data: dict
 ) -> None:
     """
     Функция вывода информации по найденным отелям.
@@ -138,3 +142,5 @@ def show_info(
         else:
             hotel_info_str = get_hotel_info_str(hotel_data, amount_nights)
             bot.send_message(message.chat.id, hotel_info_str, parse_mode="html", disable_web_page_preview=True)
+
+        # TODO: функция сохранения действия пользователя

@@ -1,6 +1,6 @@
 from telebot.types import Message, CallbackQuery
 
-from database.db_controller import show_history, delete_history
+from database.db_controller import show_history, delete_history, save_user as User
 from keyboards.get_history_action import get_history_action
 from loader import bot
 
@@ -30,11 +30,12 @@ def process_history_reply(call: CallbackQuery) -> None:
     bot.delete_message(call.message.chat.id, call.message.message_id)
     if call.data == "show_history":
         try:
-            show_history(call.message, user=call.from_user.username)
-        except Exception:
+            show_history(call.message, user_id=call.from_user.id)
+        except Exception as ex:
+            print(ex)
             bot.send_message(call.message.chat.id, text='⚠️Упс... ошибка: не могу загрузить историю поиска:')
     elif call.data == "delete_history":
         try:
-            delete_history(call.message, user=call.from_user.username)
+            delete_history(call.message, user=call.from_user.id)
         except Exception:
             bot.send_message(call.message.chat.id, text='⚠️Упс... ошибка: не могу удалить историю поиска:')

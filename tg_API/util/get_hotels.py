@@ -2,6 +2,8 @@ import json
 from typing import Dict, Union
 from telebot import types
 from telebot.types import Message
+
+from database.db_controller import save_user
 from main import bot
 
 from config_data.config import RAPID_API_ENDPOINTS, RAPID_API_HEADERS
@@ -99,10 +101,13 @@ def hotel_cities(message: types.Message, data_dict: dict):  # выводим с�
                 break
 
     info_hotels = process_hotels_info(hotels)  # много отелей
+    user = save_user(message)
     show_info(message=message,
               amount_photo=data_dict['amount_photo'],
               result_data=info_hotels,
-              amount_nights=amount_nights)
+              amount_nights=amount_nights,
+              request_data=data_dict,
+              user=user.id)
 
 
 
