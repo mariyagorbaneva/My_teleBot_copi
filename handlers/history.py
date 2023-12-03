@@ -30,12 +30,11 @@ def process_history_reply(call: CallbackQuery) -> None:
     bot.delete_message(call.message.chat.id, call.message.message_id)
     if call.data == "show_history":
         try:
-            show_history(call.message, user_id=call.from_user.id)
-        except Exception as ex:
-            print(ex)
+            show_history(call.message, user=call.from_user.username)
+        except Exception:
             bot.send_message(call.message.chat.id, text='⚠️Упс... ошибка: не могу загрузить историю поиска:')
     elif call.data == "delete_history":
         try:
-            delete_history(call.message, user=call.from_user.id)
+            delete_history(call.message, user=call.from_user.username)
         except Exception:
             bot.send_message(call.message.chat.id, text='⚠️Упс... ошибка: не могу удалить историю поиска:')
