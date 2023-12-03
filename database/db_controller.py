@@ -99,9 +99,6 @@ def show_history(message: Message, user_id: int) -> None:
 def clarify_history(call: CallbackQuery) -> None:
     """
     Функция ловит нажатие кнопки с выбором старых запросов, формирует результат из БД в список.
-    Затем присваивает этот список пейджеру 'my_pages'
-    и вызывает пагинатор 'show_paginator', который и отобразит результат.
-
     :param call: Отклик клавиатуры.
     """
 
@@ -123,11 +120,10 @@ def clarify_history(call: CallbackQuery) -> None:
             from tg_API.util.answer import get_hotel_info_str_nohtml
             hotel_info = get_hotel_info_str_nohtml(hotel_data=hotel_data, amount_nights=result.amount_nights)
             hotels_info_list.append(hotel_info)
-        # my_pages.my_strings = hotels_info_list[:]
-        # show_paginator(call.message)
 
 
-def delete_history(message: Message, user: str) -> None:
+
+def delete_history(message: Message, user_id: str) -> None:
     """
     Функция очистки истории поиска пользователя.
 
@@ -136,7 +132,7 @@ def delete_history(message: Message, user: str) -> None:
     """
 
     with db:
-        for history in History.select().where(History.from_user == user):
+        for history in History.select().where(History.from_user == message.from_user.id):
             history_date = History.get(History.date == history.date)
             SearchResult.delete().where(SearchResult.from_date == history_date).execute()
             History.delete_instance(history)
