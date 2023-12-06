@@ -29,7 +29,6 @@ def save_user(message: Message) -> User:
         return u
 
 
-
 def save_history(func: Callable) -> Callable:
     """
      Декоратор для сохранения истории поиска в БД.
@@ -70,17 +69,17 @@ def save_history(func: Callable) -> Callable:
 
         result_func = func(*args, **kwargs)
         return result_func
+
     return wrapped_func
 
 
-
-def show_history(message: Message, user_id: int) -> None:
+def show_history(message: Message, user) -> None:
     """
     Функция вывода истории поиска пользователя.
     Предлагает пользователю инлайн-клавиатуру с его прошлыми запросами из таблицы 'histories'.
 
     :param message: Сообщение.
-    :param user_id: Имя пользователя Telegram (username).
+    :param user: Имя пользователя Telegram (username).
     """
 
     with db:
@@ -122,8 +121,7 @@ def clarify_history(call: CallbackQuery) -> None:
             hotels_info_list.append(hotel_info)
 
 
-
-def delete_history(message: Message, user_id: str) -> None:
+def delete_history(message: Message, user) -> None:
     """
     Функция очистки истории поиска пользователя.
 
